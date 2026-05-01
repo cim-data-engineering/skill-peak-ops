@@ -18,8 +18,6 @@ Render exactly these markdown shapes. Replace `[bracketed]` placeholders with co
 |   | **Total**                  | 69 | 16 | 85 | 0 | 0% |
 
 _Ask me to drill into a site by equipment type, equipment name, or the full alert list._
-
-_Impact and Assignee are not yet wired through the PEAK MCP — placeholders shown until those fields are exposed._
 ```
 
 Sort: `> 30 days` desc, then `Total` desc. Total row has no `#`.
@@ -39,8 +37,6 @@ Sort: `> 30 days` desc, then `Total` desc. Total row has no `#`.
 |   | **Total**                       | 11 | 2 | 13 | 0 | 0% |
 
 _Ask me to drill into equipment names within a type, or the full alert list._
-
-_Impact and Assignee are not yet wired through the PEAK MCP — placeholders shown until those fields are exposed._
 ```
 
 Title prefix is the site's `display_name` followed by `: `. Sort: `> 30 days` desc, then `Total` desc.
@@ -65,8 +61,6 @@ Two title variants depending on scope:
 |   | **Total**     | 11 | 2 | 13 | 0 | 0% |
 
 _Ask me for the full alert list for this site._
-
-_Impact and Assignee are not yet wired through the PEAK MCP — placeholders shown until those fields are exposed._
 ```
 
 Sort: `> 30 days` desc, then `Total` desc.
@@ -80,18 +74,16 @@ Sort: `> 30 days` desc, then `Total` desc.
 
 | # | Title | Equipment type | Priority | Impact | Assignee | Updated | Ticket link |
 |---|-------|----------------|----------|--------|----------|---------|-------------|
-| 1 | CH-101 - Inspect Unit Fail                       | Chiller                          | P1 Critical | — | — | 2 hours ago | [View](https://ace.cimenviro.com/tickets/alerts/157/<ticket-uuid>) |
-| 2 | CH-302 - Inspect Unit Fail                       | Chiller                          | P1 Critical | — | — | 5 days ago  | [View](https://...) |
+| 1 | CH-101 - Inspect Unit Fail                       | Chiller                          | P1 Critical | Energy      | Alex Wong | 2 hours ago | [View](https://ace.cimenviro.com/tickets/alerts/157/<ticket-uuid>) |
+| 2 | CH-302 - Inspect Unit Fail                       | Chiller                          | P1 Critical | Reliability | —         | 5 days ago  | [View](https://...) |
 | ... |
-
-_Impact and Assignee are not yet wired through the PEAK MCP — placeholders shown until those fields are exposed._
 ```
 
-- `Title` = `alert_summary` verbatim.
-- `Equipment type` = `equipment_type_name` of the first equipment.
-- `Priority` = `"P1 Critical"` for `priority_id=1`, `"P2 Urgent"` for `priority_id=2`.
-- `Impact` = `"—"` placeholder.
-- `Assignee` = `assignee` if non-null else `"—"`.
-- `Updated` = relative time between `alert_updated_at` and now (e.g. `"1 hour ago"`, `"5 days ago"`). See `field_mapping.md` for unit thresholds.
-- `Ticket link` = `[View](alert_link)`.
-- Sort: `alert_updated_at` desc (newest first) — sort by the raw timestamp, not the rendered string. No Total row on the alert list.
+- `Title` = `AT.title` verbatim.
+- `Equipment type` = `AT.equipment_types[0]`.
+- `Priority` = `"P1 Critical"` for `priority=1`, `"P2 Urgent"` for `priority=2`.
+- `Impact` = `AT.impact` verbatim if it already contains an uppercase letter, else title-cased (e.g. `"energy"` → `"Energy"`); `"—"` if null.
+- `Assignee` = `AT.assignee.name` if non-null and non-empty; `"(unnamed)"` if `AT.assignee` exists but name is null/blank; `"—"` if `AT.assignee` itself is null.
+- `Updated` = relative time between `AT.updated_at` and now (e.g. `"1 hour ago"`, `"5 days ago"`). See `field_mapping.md` for unit thresholds.
+- `Ticket link` = `[View](AT.alert_link)`.
+- Sort: `AT.updated_at` desc (newest first) — sort by the raw timestamp, not the rendered string. No Total row on the alert list.
