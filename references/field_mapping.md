@@ -14,10 +14,10 @@ Every field this skill needs is now on the alert ticket itself. No equipment-sid
 | Derived field | Rule |
 |---|---|
 | `time_in_fault_days_bucket` | `AT.time_in_fault_hours >= 720` → `"> 30 days"`; else `"< 30 days"`. If `time_in_fault_hours` is null/missing, bucket as `"< 30 days"` (don't drop the row — that would skew totals invisibly). |
-| `priority_label` | `AT.priority == 1` → `"P1 Critical"`; `AT.priority == 2` → `"P2 Urgent"` |
+| `priority_label` | `AT.priority` verbatim — wire already returns the label string (`"P1 Critical"`, `"P2 Urgent"`). The integer 1/2 form is **input-only** (filter param); never appears in responses. |
 | `is_assigned` | `AT.assignee != null` (true even if `AT.assignee.name` is blank — someone's been assigned, just not properly named) |
 | `assignee_label` | `AT.assignee.name` if non-null and non-empty; `"(unnamed)"` if `AT.assignee` exists but name is null/blank; `"—"` if `AT.assignee` itself is null |
-| `impact` | `AT.impact` rendered: verbatim if it already contains an uppercase letter, else title-cased (e.g. `"comfort"` → `"Comfort"`); `"—"` if null. Forward-compatible if PEAK starts shipping pre-formatted display strings. |
+| `impact` | `AT.impact` is an array of enum strings (e.g. `["reliability"]`, `["energy"]`, `[]`). Take `AT.impact[0]` and render: verbatim if already mixed-case, else title-cased (`"reliability"` → `"Reliability"`). `"—"` if the array is empty or missing. If the array has multiple values (rare), join with `", "` after applying the case rule per element. |
 | `updated_relative` | relative time between `AT.updated_at` and now, formatted as `"X unit ago"`. Unit thresholds (use the largest unit that fits, floor the value): <br>• `< 60 sec` → `"just now"` <br>• `< 60 min` → `"N minute(s) ago"` <br>• `< 24 hr` → `"N hour(s) ago"` <br>• `< 30 days` → `"N day(s) ago"` <br>• `< 12 months` → `"N month(s) ago"` (1 month = 30 days) <br>• otherwise → `"N year(s) ago"` (1 year = 365 days) <br>Singular for `N == 1` (`"1 hour ago"`), plural otherwise (`"5 days ago"`). |
 | `ticket_link_md` | `"[View](" + AT.alert_link + ")"` |
 | `equipment_name_primary` | `AT.equipment_names[0]` |

@@ -81,8 +81,8 @@ Sort: `> 30 days` desc, then `Total` desc.
 
 - `Title` = `AT.title` verbatim.
 - `Equipment type` = `AT.equipment_types[0]`.
-- `Priority` = `"P1 Critical"` for `priority=1`, `"P2 Urgent"` for `priority=2`.
-- `Impact` = `AT.impact` verbatim if it already contains an uppercase letter, else title-cased (e.g. `"energy"` → `"Energy"`); `"—"` if null.
+- `Priority` = `AT.priority` verbatim — wire already returns `"P1 Critical"` / `"P2 Urgent"`.
+- `Impact` = `AT.impact[0]` title-cased (e.g. `"energy"` → `"Energy"`); `"—"` if the array is empty or missing.
 - `Assignee` = `AT.assignee.name` if non-null and non-empty; `"(unnamed)"` if `AT.assignee` exists but name is null/blank; `"—"` if `AT.assignee` itself is null.
 - `Updated` = relative time between `AT.updated_at` and now (e.g. `"1 hour ago"`, `"5 days ago"`). See `field_mapping.md` for unit thresholds.
 - `Ticket link` = `[View](AT.alert_link)`.
