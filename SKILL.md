@@ -1,6 +1,6 @@
 ---
 name: peak-ops
-description: Portfolio operations dashboard over PEAK fault-detection alerts. Only invoke when the user explicitly runs the /peak-ops slash command. Do not auto-trigger on related keywords, topics, or PEAK-adjacent questions. Once invoked, remain active for the rest of the session to handle follow-up drilldowns (by site, equipment type, equipment name, or alert list) without requiring re-invocation.
+description: Portfolio operations dashboard over PEAK fault-detection alert tickets. Only invoke when the user explicitly runs the /peak-ops slash command. Do not auto-trigger on related keywords, topics, or PEAK-adjacent questions. Once invoked, remain active for the rest of the session to handle follow-up drilldowns (by site, equipment type, equipment name, or alert list) without requiring re-invocation.
 ---
 
 # PEAK Portfolio Operations
@@ -20,13 +20,13 @@ Exact markdown layouts are in `references/table_templates.md`. Read it before re
 
 ## Triggering & scope
 
-The skill resolves a set of `site_id`s before pulling any alerts. There are three ways the user can specify scope:
+The skill resolves a set of `site_id`s before pulling any alert tickets. There are three ways the user can specify scope:
 
 **Specific sites named** — work over those. (e.g. "alerts at Building 12 and 123 Main St")
 
 **Client / portfolio / customer named** — resolve the client, expand to its sites. Cue words: `portfolio`, `customer`, `client`, `across <X> sites`, `all of <X>'s sites`, `<X>'s sites`. (e.g. "What requires attention across GPT Office sites?")
 
-**Bare "my portfolio" / "show me my sites" with no name** — discover all sites the user has access to. Call `search_sites()` with no filter and `limit: 51`. If 50 or fewer come back, proceed with all of them. If 51 come back (the user has access to more than 50), stop and ask the user to scope by client, region, or a specific site list — don't fetch further. Pulling P1+P2 alerts across a 50+ portfolio is slow and the resulting table is unreadable.
+**Bare "my portfolio" / "show me my sites" with no name** — discover all sites the user has access to. Call `search_sites()` with no filter and `limit: 51`. If 50 or fewer come back, proceed with all of them. If 51 come back (the user has access to more than 50), stop and ask the user to scope by client, region, or a specific site list — don't fetch further. Pulling P1+P2 alert tickets across a 50+ portfolio is slow and the resulting table is unreadable.
 
 **Name ambiguity** — If a query doesn't carry a client cue but `search_sites(display_name=X)` returns no result with `score >= 0.5`, fall back to `search_clients(client_name=%X%)` before giving up. If both `search_sites` and `search_clients` return strong matches for the same bare name (e.g. "Westfield" is both a parent and a building), ask the user which they meant.
 
@@ -54,7 +54,7 @@ Track progress with this checklist as you work:
 
 - [ ] Phase 1: scope resolved to a concrete `site_id` set (named sites, client expansion, or accessible portfolio under the 50-site cap)
 - [ ] Phase 2: alert tickets pulled for both priorities, all pages, every site
-- [ ] Phase 3: per-alert records built and table rendered
+- [ ] Phase 3: per-alert-ticket records built and table rendered
 
 ### Phase 1 — Resolve site_ids
 
@@ -72,7 +72,7 @@ The path depends on what the user named.
 
 **Chunk `site_ids` to stay under the response cap.** Each ticket record is ~800 bytes on the wire and the gateway caps responses around ~80KB / ~100 records. A single batched call across 10 sites at P2 fault was observed to trip the cap (97 records). Use these heuristics:
 
-- P1 fault: chunk size **20** (alerts are sparse — usually safe to batch the whole portfolio).
+- P1 fault: chunk size **20** (alert tickets are sparse — usually safe to batch the whole portfolio).
 - P2 fault, P3 fault, recovered, archived included: chunk size **5**.
 - If a chunked call still trips the cap, halve the chunk and retry the affected chunk only.
 
@@ -82,10 +82,7 @@ All chunks are independent — issue them in parallel within a single tool-use b
 
 **Pagination safety cap**: if a single tuple has made 20 paginated calls without `has_more` going false, stop, report the partial total to the user, and flag the result as incomplete. A misbehaving connector should not put you in an infinite loop.
 
-**Recovery from a tripped response cap.** If a call fails with a transport error (5xx, timeout, truncated response — gateway notes call this out), the gateway will have **saved the raw JSON to disk** and surfaced the file path in the error. Two recovery options, in order of preference:
-
-1. **Slim the saved file with `jq` instead of refetching.** The skill only needs ~12 fields per alert (`ticket_id`, `title`, `site_id`, `site_name`, `equipment_names[0]`, `equipment_types[0]`, `priority`, `impact[0]`, `assignee`, `time_in_fault_hours`, `updated_at`, `alert_link`). A `jq '[.results[] | {…}]'` projection turns ~83KB into ~10KB — no extra tool calls, full record set preserved. For very large files, run the `jq` step inside an `Explore` subagent so the raw blob never enters the main context.
-2. **Refetch with smaller chunks** only if the saved file is missing or unusable. Halve the chunk size for the affected (priority, status) tuple and retry just those chunks.
+**Recovery from a tripped response cap.** If a call trips the response cap (5xx, timeout, truncated response), halve the chunk size for the affected `(priority, status)` tuple and retry just those chunks.
 
 Each ticket already carries `equipment_names` and `equipment_types` as string arrays, plus `impact`, `assignee`, and `time_in_fault_hours` — no follow-up enrichment calls are required.
 
@@ -97,22 +94,7 @@ Re-fetch only if: the user asks for fresh data, the conversation has clearly mov
 
 ### Phase 3 — Aggregate and render
 
-Build a per-alert record with these derived fields:
-
-| Field | Source / rule |
-|---|---|
-| `site_name` | `AT.site_name` |
-| `equipment_name` | `AT.equipment_names[0]` |
-| `equipment_type_name` | `AT.equipment_types[0]` |
-| `priority_label` | `AT.priority` verbatim (wire returns `"P1 Critical"` / `"P2 Urgent"`; the integer form is input-filter-only) |
-| `time_in_fault_days_bucket` | `AT.time_in_fault_hours >= 720 → "> 30 days"` else `"< 30 days"` (note the space — match column headers exactly). Null/missing → `"< 30 days"`, never drop the row |
-| `is_assigned` | `AT.assignee != null` (true even if name is blank) |
-| `impact` | `AT.impact` is an array; take `[0]` and title-case unless already mixed-case. Empty/missing array → `"—"` |
-| `assignee_label` | `AT.assignee.name` if non-null/non-empty; `"(unnamed)"` if assignee exists but name is blank; `"—"` if assignee is null |
-| `updated_relative` | relative time ago between `AT.updated_at` and now (e.g. `"1 hour ago"`, `"5 days ago"`) — see `references/field_mapping.md` for the unit thresholds |
-| `ticket_link_md` | `[View](AT.alert_link)` |
-
-Then render the requested table per `references/table_templates.md`.
+Build a per-alert-ticket record using the rules in `references/field_mapping.md` (bucket, priority label, assignee label, impact, updated_relative, ticket link, equipment primaries). Then render the requested table per `references/table_templates.md`.
 
 **Sort orders** (these match the demo XLSX):
 
@@ -130,16 +112,16 @@ For the equipment-name drilldown, the user can scope to a site only or to a site
 - Site only: `[site_name]: P1-2 alerts in fault by equipment name`
 - Site + type: `[site_name] / [equipment_type_name]: P1-2 alerts in fault by equipment name`
 
-## Multi-equipment alerts
+## Multi-equipment alert tickets
 
-Alerts occasionally have multiple entries in `equipment_names` / `equipment_types` (e.g., `"CH-302,Common_CHWS-3 - Inspect Unit Fail"`). To keep the math simple and unambiguous, **use index `[0]` only** for both the equipment-name and equipment-type tables. Each alert is counted exactly once.
+Alert tickets occasionally have multiple entries in `equipment_names` / `equipment_types` (e.g., `"CH-302,Common_CHWS-3 - Inspect Unit Fail"`). To keep the math simple and unambiguous, **use index `[0]` only** for both the equipment-name and equipment-type tables. Each alert ticket is counted exactly once.
 
 ## Output discipline
 
 - Return **only** the requested table(s) plus the optional drilldown hint. No commentary, no recommendations, no executive summary.
 - Numbers are integers; percentages are rendered with no decimal place (e.g., `26%`).
 - The `#` column auto-numbers from 1 within each table. Don't include `#` on the Total row.
-- If `equipment_names` is empty for an alert, **silently skip** that alert. Don't pollute the output with "Unknown" rows.
+- If `equipment_names` is empty for an alert ticket, **silently skip** that ticket. Don't pollute the output with "Unknown" rows.
 
 ## Field reference
 

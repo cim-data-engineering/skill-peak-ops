@@ -64,6 +64,6 @@ Sort: `AT.updated_at` desc.
 
 ## Edge cases
 
-- **Empty `equipment_names` / `equipment_types`**: drop the alert. Don't surface "Unknown" rows.
+- **Empty `equipment_names` / `equipment_types`**: drop the alert ticket. Don't surface "Unknown" rows.
 - **No alerts in a group**: skip that row entirely from the table — don't render zero-count rows.
 - **Site with zero P1-2 faults**: still include in Table 1 with all zeros, so the user sees the site is healthy.
