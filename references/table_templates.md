@@ -9,18 +9,27 @@ Render exactly these markdown shapes. Replace `[bracketed]` placeholders with co
 ```
 **P1-2 alerts in fault by site**
 
-| # | Site | > 30 days | < 30 days | Total | Assigned | % Assigned |
-|---|------|-----------|-----------|-------|----------|------------|
-| 1 | Charlestown Square         | 20 | 3 | 23 | 0 | 0% |
-| 2 | Rouse Hill Town Centre     | 11 | 3 | 14 | 0 | 0% |
-| 3 | Parkmore Shopping Centre   | 11 | 2 | 13 | 0 | 0% |
+| # | Site | > 30 days | < 30 days | Total | Assigned | % Assigned | Link |
+|---|------|-----------|-----------|-------|----------|------------|------|
+| 1 | Charlestown Square         | 20 | 3 | 23 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=52&priority_ids=1&priority_ids=2&status_ids=fault&archived=false) |
+| 2 | Rouse Hill Town Centre     | 11 | 3 | 14 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=154&priority_ids=1&priority_ids=2&status_ids=fault&archived=false) |
+| 3 | Parkmore Shopping Centre   | 11 | 2 | 13 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=157&priority_ids=1&priority_ids=2&status_ids=fault&archived=false) |
 | ... |
-|   | **Total**                  | 69 | 16 | 85 | 0 | 0% |
+|   | **Total**                  | 69 | 16 | 85 | 0 | 0% |  |
 
 _Ask me to drill into a site by equipment type, equipment name, or the full alert list._
 ```
 
-Sort: `> 30 days` desc, then `Total` desc. Total row has no `#`.
+Sort: `> 30 days` desc, then `Total` desc. Total row has no `#` and no `Link`.
+
+`Link` cell is a markdown `[View](url)` pointing to the PEAK alert search filtered to that site:
+
+```
+https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=[site_id]&priority_ids=1&priority_ids=2&status_ids=fault&archived=false
+```
+
+- `[site_id]` = the site's numeric `site_id`.
+- Priority pins: P1-2 → `priority_ids=1&priority_ids=2`; P3-5 → `priority_ids=3&priority_ids=4&priority_ids=5`.
 
 ---
 
@@ -53,17 +62,26 @@ Two title variants depending on scope:
 ```
 **Parkmore Shopping Centre: P1-2 alerts in fault by equipment name**
 
-| # | Equipment name | > 30 days | < 30 days | Total | Assigned | % Assigned |
-|---|----------------|-----------|-----------|-------|----------|------------|
-| 1 | PAC_New_R4    | 2 | 0 | 2 | 0 | 0% |
-| 2 | TEF-202       | 2 | 0 | 2 | 0 | 0% |
+| # | Equipment name | > 30 days | < 30 days | Total | Assigned | % Assigned | Link |
+|---|----------------|-----------|-----------|-------|----------|------------|------|
+| 1 | PAC_New_R4    | 2 | 0 | 2 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=157&equipment_ids=313532612679&archived=false) |
+| 2 | TEF-202       | 2 | 0 | 2 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=157&equipment_ids=313532612676&archived=false) |
 | ... |
-|   | **Total**     | 11 | 2 | 13 | 0 | 0% |
+|   | **Total**     | 11 | 2 | 13 | 0 | 0% |  |
 
 _Ask me for the full alert list for this site._
 ```
 
-Sort: `> 30 days` desc, then `Total` desc.
+Sort: `> 30 days` desc, then `Total` desc. Total row has no `#` and no `Link`.
+
+`Link` cell is a markdown `[View](url)` pointing to the PEAK alert search for that equipment at this site (no priority/status pins — opens **all** non-archived alerts for the equipment, so the user can drill across priorities live):
+
+```
+https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=[site_id]&equipment_ids=[id1]&equipment_ids=[id2]&archived=false
+```
+
+- `[site_id]` = the table's site `site_id`.
+- `equipment_ids=…` repeats once per unique `AT.equipment_ids[0]` across the alert tickets grouped under this row (deduped). Most rows resolve to a single ID; multiple appear when the same display name maps to more than one physical equipment.
 
 ---
 
