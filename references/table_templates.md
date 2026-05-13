@@ -38,17 +38,29 @@ https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DE
 ```
 **Parkmore Shopping Centre: P1-2 alerts in fault by equipment type**
 
-| # | Equipment type | > 30 days | < 30 days | Total | Assigned | % Assigned |
-|---|----------------|-----------|-----------|-------|----------|------------|
-| 1 | Exhaust Air Fans                | 4 | 0 | 4 | 0 | 0% |
-| 2 | Packaged Air Conditioning Units | 3 | 0 | 3 | 0 | 0% |
+| # | Equipment type | > 30 days | < 30 days | Total | Assigned | % Assigned | Link |
+|---|----------------|-----------|-----------|-------|----------|------------|------|
+| 1 | Exhaust Air Fans                | 4 | 0 | 4 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=157&priority_ids=1&priority_ids=2&status_ids=fault&metadata_type_ids=32&archived=false) |
+| 2 | Packaged Air Conditioning Units | 3 | 0 | 3 | 0 | 0% | [View](https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=157&priority_ids=1&priority_ids=2&status_ids=fault&metadata_type_ids=20&archived=false) |
 | ... |
-|   | **Total**                       | 11 | 2 | 13 | 0 | 0% |
+|   | **Total**                       | 11 | 2 | 13 | 0 | 0% |  |
 
 _Ask me to drill into equipment names within a type, or the full alert list._
 ```
 
-Title prefix is the site's `display_name` followed by `: `. Sort: `> 30 days` desc, then `Total` desc.
+Title prefix is the site's `display_name` followed by `: `. Sort: `> 30 days` desc, then `Total` desc. Total row has no `#` and no `Link`.
+
+`Link` cell is a markdown `[View](url)` pointing to the PEAK alert search filtered to that site, priority, status, **and** equipment type:
+
+```
+https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=[site_id]&<priority_pins>&<status_pins>&metadata_type_ids=[type_id]&archived=[include_archived]
+```
+
+- `[site_id]` = the table's site `site_id`.
+- `[type_id]` = `metadata_type_ids` for `equipment_type_primary`, looked up in `references/equipment_type_ids.md`.
+- Priority pins reflect the table's active priority set: P1-2 → `priority_ids=1&priority_ids=2`; P3-5 → `priority_ids=3&priority_ids=4&priority_ids=5`.
+- Status / archived pins match the active filter set (same rule as Table 1's `site_alert_search_url`).
+- If the type name doesn't resolve in `equipment_type_ids.md`, leave the `Link` cell empty for that row.
 
 ---
 

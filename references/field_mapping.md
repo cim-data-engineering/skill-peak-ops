@@ -26,6 +26,8 @@ Every field this skill needs is now on the alert ticket itself. No equipment-sid
 | `site_link_md` | `"[View](" + site_alert_search_url + ")"` — used in Table 1's trailing `Link` cell. Total row's `Link` cell stays empty. |
 | `equipment_alert_search_url` | PEAK alert-search URL for one equipment-name group, scoped to the table's site and **all** alerts on that equipment (no priority/status pins — wider scope than `site_alert_search_url`): `https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=<site_id>&<equipment_pins>&archived=false`. Equipment pins: take the union of `AT.equipment_ids[0]` across the alert tickets in the group (i.e., the IDs that line up with `equipment_names[0]`), dedupe, and emit one `equipment_ids=<id>` query param per ID. `archived=false` always — opens the search live in the user's browser, where they can flip the filter themselves. |
 | `equipment_link_md` | `"[View](" + equipment_alert_search_url + ")"` — used in Table 3's trailing `Link` cell. Total row's `Link` cell stays empty. |
+| `equipment_type_alert_search_url` | PEAK alert-search URL for one equipment-type group, scoped to the table's site, the active priority/status filters, **and** the type: `https://ace.cimenviro.com/tickets/alerts/search?tickets_order_by=updated_at%20DESC&site_ids=<site_id>&<priority_pins>&<status_pins>&metadata_type_ids=<type_id>&archived=<include_archived>`. Priority pins reflect the **table's** active priority set, not the global override — Table 2 P1-2 emits `priority_ids=1&priority_ids=2`; the P3-5 companion table (rendered for single-site scope) emits `priority_ids=3&priority_ids=4&priority_ids=5`. Status pins and `archived` follow the active filters (same rule as `site_alert_search_url`). `<type_id>` = lookup of `equipment_type_primary` in `references/equipment_type_ids.md`. If the name doesn't resolve, emit no link for that row (empty cell). |
+| `equipment_type_link_md` | `"[View](" + equipment_type_alert_search_url + ")"` — used in Table 2's trailing `Link` cell. Empty on the Total row, and empty on any row whose type name doesn't resolve in `equipment_type_ids.md`. |
 
 ## Table 1 — by site
 
@@ -44,7 +46,8 @@ Every field this skill needs is now on the alert ticket itself. No equipment-sid
 | Column | Source | Rule |
 |---|---|---|
 | `Equipment type` | AT | `equipment_type_primary`, grouped |
-| Remaining columns | derived | same rules as Table 1 |
+| `> 30 days` / `< 30 days` / `Total` / `Assigned` / `% Assigned` | derived | same rules as Table 1 |
+| `Link` | derived | `equipment_type_link_md` — markdown `[View](url)` to the PEAK alert search filtered to this site, the table's active priorities/status, and the equipment type's `metadata_type_ids`. Empty on the Total row, and empty on any row whose type name doesn't resolve in `equipment_type_ids.md`. |
 
 ## Table 3 — by equipment name (per site, optionally also per equipment type)
 

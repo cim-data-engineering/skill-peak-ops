@@ -80,6 +80,8 @@ All chunks are independent — issue them in parallel within a single tool-use b
 
 **Parallelise.** All initial `search_alert_tickets` calls — every (priority, status, site_chunk) combination — are independent. Issue them in a single tool-use batch (one message with multiple tool calls), not sequentially. Subsequent pagination calls can also be batched per tuple as long as `has_more === true`.
 
+**Single-site scope also pulls P3-5.** When Phase 1 resolves to exactly one site, add P3, P4, P5 to the priority set for that site's calls (in addition to the P1+P2 defaults). See `Single-site default output` below for the rendering rule this feeds.
+
 **Pagination safety cap**: if a single tuple has made 20 paginated calls without `has_more` going false, stop, report the partial total to the user, and flag the result as incomplete. A misbehaving connector should not put you in an infinite loop.
 
 **Recovery from a tripped response cap.** If a call trips the response cap (5xx, timeout, truncated response), halve the chunk size for the affected `(priority, status)` tuple and retry just those chunks.
@@ -112,6 +114,17 @@ For the equipment-name drilldown, the user can scope to a site only or to a site
 - Site only: `[site_name]: P1-2 alerts in fault by equipment name`
 - Site + type: `[site_name] / [equipment_type_name]: P1-2 alerts in fault by equipment name`
 
+## Single-site default output
+
+When Phase 1 resolves to **exactly one site** and the user hasn't asked for a specific table, render Table 2 twice — first for the default P1-2 priorities, then a second Table 2 for P3-5 directly below it:
+
+1. `**[site_name]: P1-2 alerts in fault by equipment type**`
+2. `**[site_name]: P3-5 alerts in fault by equipment type**`
+
+Same column layout, sort order, and Total row as Table 2 (see `references/table_templates.md`). Each alert ticket carries its own `priority`, so partition by priority on render — no separate aggregation pass needed. Append the standard Table 2 hint only once, after the second table.
+
+If the user has **explicitly overridden** the priority filter (e.g. "P1-3 only", "all priorities", "include P4"), follow their ask and skip the second table — their override is authoritative.
+
 ## Multi-equipment alert tickets
 
 Alert tickets occasionally have multiple entries in `equipment_names` / `equipment_types` (e.g., `"CH-302,Common_CHWS-3 - Inspect Unit Fail"`). To keep the math simple and unambiguous, **use index `[0]` only** for both the equipment-name and equipment-type tables. Each alert ticket is counted exactly once.
@@ -126,6 +139,8 @@ Alert tickets occasionally have multiple entries in `equipment_names` / `equipme
 ## Field reference
 
 `references/field_mapping.md` lists every column in every table and the exact MCP path it maps from. Read it when you need to confirm a field.
+
+`references/equipment_type_ids.md` is a static lookup of equipment type name → `metadata_type_ids` used by Table 2's `Link` URL. Use it directly — don't re-fetch with `search_equipment_types` unless a name fails to resolve.
 
 ## Tool sequence summary
 
